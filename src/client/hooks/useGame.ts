@@ -32,15 +32,34 @@ export function useGame() {
   const [canvasSize, setCanvasSize] = useState({ width: BASE_WIDTH, height: BASE_HEIGHT });
   const gameLoopRef = useRef<number | undefined>(undefined);
 
-  // Responsive canvas size
+  // Responsive canvas size - fullscreen on mobile
   useEffect(() => {
     const updateSize = () => {
-      const maxWidth = Math.min(window.innerWidth - 32, BASE_WIDTH);
-      const scale = maxWidth / BASE_WIDTH;
-      setCanvasSize({
-        width: maxWidth,
-        height: Math.min(BASE_HEIGHT * scale, window.innerHeight - 200),
-      });
+      const isMobile = window.innerWidth < 768;
+
+      if (isMobile) {
+        // Mobile: use full screen
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Calculate scale based on which dimension is the limiting factor
+        const scaleByWidth = screenWidth / BASE_WIDTH;
+        const scaleByHeight = screenHeight / BASE_HEIGHT;
+        const optimalScale = Math.min(scaleByWidth, scaleByHeight);
+
+        setCanvasSize({
+          width: BASE_WIDTH * optimalScale,
+          height: BASE_HEIGHT * optimalScale,
+        });
+      } else {
+        // Desktop: use bounded size
+        const maxWidth = Math.min(window.innerWidth - 32, BASE_WIDTH);
+        const scale = maxWidth / BASE_WIDTH;
+        setCanvasSize({
+          width: maxWidth,
+          height: Math.min(BASE_HEIGHT * scale, window.innerHeight - 200),
+        });
+      }
     };
 
     updateSize();

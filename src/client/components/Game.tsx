@@ -194,6 +194,8 @@ export function Game({ onGameOver }: GameProps) {
     }
   }, [bird, pipes, score, gameState, canvasWidth, canvasHeight, scale, birdSize, pipeWidth, pipeGap, baseHeight]);
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
   return (
     <canvas
       ref={canvasRef}
@@ -206,10 +208,11 @@ export function Game({ onGameOver }: GameProps) {
       }}
       style={{
         cursor: "pointer",
-        border: "3px solid #333",
-        borderRadius: "8px",
+        border: isMobile ? "none" : "3px solid #333",
+        borderRadius: isMobile ? "0" : "8px",
         touchAction: "none",
         maxWidth: "100%",
+        display: "block",
       }}
     />
   );
