@@ -7,13 +7,17 @@ function App() {
   const [gameKey, setGameKey] = useState(0);
   const [showGameOver, setShowGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
+  const [savedNickname, setSavedNickname] = useState("");
 
   const handleGameOver = useCallback((score: number) => {
     setFinalScore(score);
     setShowGameOver(true);
   }, []);
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = useCallback((nickname?: string) => {
+    if (nickname) {
+      setSavedNickname(nickname);
+    }
     setShowGameOver(false);
     setGameKey((prev) => prev + 1);
   }, []);
@@ -27,6 +31,7 @@ function App() {
       {showGameOver && (
         <GameOverModal
           score={finalScore}
+          defaultNickname={savedNickname}
           onClose={handleCloseModal}
         />
       )}

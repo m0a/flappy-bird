@@ -10,14 +10,12 @@ interface RankingEntry {
 
 interface GameOverModalProps {
   score: number;
-  onClose: () => void;
+  defaultNickname?: string;
+  onClose: (nickname?: string) => void;
 }
 
-export function GameOverModal({ score, onClose }: GameOverModalProps) {
-  const [nickname, setNickname] = useState(() => {
-    // Load saved nickname from localStorage
-    return localStorage.getItem("flappybird_nickname") || "";
-  });
+export function GameOverModal({ score, defaultNickname = "", onClose }: GameOverModalProps) {
+  const [nickname, setNickname] = useState(defaultNickname);
   const [submitting, setSubmitting] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
@@ -60,8 +58,6 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
     setSubmitting(true);
     try {
       const trimmedNickname = nickname.trim();
-      // Save nickname to localStorage for next time
-      localStorage.setItem("flappybird_nickname", trimmedNickname);
       await submitScore(trimmedNickname, score);
       await loadRanking();
       setShowRanking(true);
@@ -150,7 +146,7 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
                 </table>
               </div>
             )}
-            <button style={styles.button} onClick={onClose}>
+            <button style={styles.button} onClick={() => onClose(nickname.trim() || undefined)}>
               Play Again
             </button>
           </div>
