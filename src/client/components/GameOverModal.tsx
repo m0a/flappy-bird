@@ -14,7 +14,10 @@ interface GameOverModalProps {
 }
 
 export function GameOverModal({ score, onClose }: GameOverModalProps) {
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(() => {
+    // Load saved nickname from localStorage
+    return localStorage.getItem("flappybird_nickname") || "";
+  });
   const [submitting, setSubmitting] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
@@ -56,7 +59,10 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
 
     setSubmitting(true);
     try {
-      await submitScore(nickname.trim(), score);
+      const trimmedNickname = nickname.trim();
+      // Save nickname to localStorage for next time
+      localStorage.setItem("flappybird_nickname", trimmedNickname);
+      await submitScore(trimmedNickname, score);
       await loadRanking();
       setShowRanking(true);
     } catch (error) {
