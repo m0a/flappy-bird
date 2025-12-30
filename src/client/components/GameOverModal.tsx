@@ -16,11 +16,13 @@ interface GameOverModalProps {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "-";
-  const date = new Date(dateStr);
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
+  // Parse as UTC and convert to JST (UTC+9)
+  const date = new Date(dateStr + "Z");
+  const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const month = jstDate.getUTCMonth() + 1;
+  const day = jstDate.getUTCDate();
+  const hours = jstDate.getUTCHours().toString().padStart(2, "0");
+  const minutes = jstDate.getUTCMinutes().toString().padStart(2, "0");
   return `${month}/${day} ${hours}:${minutes}`;
 }
 
