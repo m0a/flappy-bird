@@ -14,6 +14,16 @@ interface GameOverModalProps {
   onClose: (nickname?: string) => void;
 }
 
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "-";
+  const date = new Date(dateStr);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${month}/${day} ${hours}:${minutes}`;
+}
+
 export function GameOverModal({ score, defaultNickname = "", onClose }: GameOverModalProps) {
   const [nickname, setNickname] = useState(defaultNickname);
   const [submitting, setSubmitting] = useState(false);
@@ -127,6 +137,7 @@ export function GameOverModal({ score, defaultNickname = "", onClose }: GameOver
                       <th style={styles.th}>#</th>
                       <th style={styles.th}>Name</th>
                       <th style={styles.th}>Score</th>
+                      <th style={styles.th}>Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -140,6 +151,7 @@ export function GameOverModal({ score, defaultNickname = "", onClose }: GameOver
                         </td>
                         <td style={styles.td}>{entry.nickname}</td>
                         <td style={styles.td}>{entry.score}</td>
+                        <td style={styles.tdDate}>{formatDate(entry.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -203,7 +215,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "24px",
     textAlign: "center",
     width: "100%",
-    maxWidth: "340px",
+    maxWidth: "400px",
     maxHeight: "90vh",
     overflow: "auto",
   },
@@ -289,6 +301,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "16px",
     color: "#222",
     fontWeight: "500",
+  },
+  tdDate: {
+    padding: "12px 6px",
+    borderBottom: "1px solid #e0e0e0",
+    fontSize: "12px",
+    color: "#666",
+    whiteSpace: "nowrap",
   },
   topThree: {
     backgroundColor: "#fff9c4",
