@@ -64,8 +64,9 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     backgroundColor: "#fff",
     borderRadius: "8px",
-    padding: "20px",
-    minWidth: "300px",
+    padding: "16px",
+    width: "100%",
+    maxWidth: "300px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
   },
   title: {

@@ -25,9 +25,9 @@ function App() {
   }, []);
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.title}>Flappy Bird</h1>
-      <div style={styles.gameArea}>
+    <div className="app-container">
+      <h1 className="app-title">Flappy Bird</h1>
+      <div className="game-area">
         <Game key={gameKey} onGameOver={handleGameOver} />
         <Ranking key={rankingKey} />
       </div>
@@ -41,27 +41,5 @@ function App() {
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "20px",
-    backgroundColor: "#f0f0f0",
-  },
-  title: {
-    color: "#333",
-    marginBottom: "20px",
-  },
-  gameArea: {
-    display: "flex",
-    gap: "20px",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-};
 
 export default App;
