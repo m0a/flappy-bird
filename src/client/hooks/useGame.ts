@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { playJumpSound, playScoreSound, playGameOverSound, resumeAudio } from "../lib/sound";
+import { playJumpSound, playScoreSound, playGameOverSound, resumeAudio, startBgm, stopBgm } from "../lib/sound";
 
 const BASE_WIDTH = 400;
 const BASE_HEIGHT = 600;
@@ -111,6 +111,7 @@ export function useGame() {
   const jump = useCallback(() => {
     if (gameState === "ready") {
       resumeAudio();
+      startBgm();
       startGame();
     }
     if (gameState === "playing" || gameState === "ready") {
@@ -121,6 +122,7 @@ export function useGame() {
 
   const endGame = useCallback(() => {
     setGameState("gameover");
+    stopBgm();
     playGameOverSound();
     if (gameLoopRef.current) {
       cancelAnimationFrame(gameLoopRef.current);
