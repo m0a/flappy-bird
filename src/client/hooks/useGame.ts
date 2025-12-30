@@ -5,8 +5,8 @@ const BASE_HEIGHT = 600;
 const BIRD_SIZE = 34;
 const PIPE_WIDTH = 60;
 const PIPE_GAP = 150;
-const GRAVITY = 0.5;
-const JUMP_FORCE = -10;
+const GRAVITY = 0.4;
+const JUMP_FORCE = -8;
 const PIPE_SPEED = 3;
 
 interface Bird {
