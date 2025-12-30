@@ -161,10 +161,12 @@ export function Game({ onGameOver }: GameProps) {
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Ground
+    const groundHeight = 20 * scale;
+    const grassHeight = 4 * scale;
     ctx.fillStyle = "#8B4513";
-    ctx.fillRect(0, canvasHeight - 20, canvasWidth, 20);
+    ctx.fillRect(0, canvasHeight - groundHeight, canvasWidth, groundHeight);
     ctx.fillStyle = "#228B22";
-    ctx.fillRect(0, canvasHeight - 24, canvasWidth, 4);
+    ctx.fillRect(0, canvasHeight - groundHeight - grassHeight, canvasWidth, grassHeight);
 
     // Draw pipes
     pipes.forEach((pipe) => {
