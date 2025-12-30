@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { playJumpSound, playScoreSound, playGameOverSound, resumeAudio } from "../lib/sound";
 
 const BASE_WIDTH = 400;
 const BASE_HEIGHT = 600;
@@ -109,15 +110,18 @@ export function useGame() {
 
   const jump = useCallback(() => {
     if (gameState === "ready") {
+      resumeAudio();
       startGame();
     }
-    if (gameState === "playing") {
+    if (gameState === "playing" || gameState === "ready") {
+      playJumpSound();
       setBird((prev) => ({ ...prev, velocity: JUMP_FORCE, rotation: -30 }));
     }
   }, [gameState, startGame]);
 
   const endGame = useCallback(() => {
     setGameState("gameover");
+    playGameOverSound();
     if (gameLoopRef.current) {
       cancelAnimationFrame(gameLoopRef.current);
     }
@@ -198,6 +202,7 @@ export function useGame() {
       if (!pipe.passed && bird.x > pipeRight) {
         pipe.passed = true;
         setScore((prev) => prev + 1);
+        playScoreSound();
       }
     });
   }, [bird, pipes, gameState, endGame]);
