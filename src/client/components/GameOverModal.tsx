@@ -1,16 +1,24 @@
-import { useState } from "react";
-import { submitScore } from "../lib/api";
+import { useState, useEffect } from "react";
+import { submitScore, getRanking } from "../lib/api";
+
+interface RankingEntry {
+  id: number;
+  nickname: string;
+  score: number;
+  createdAt: string | null;
+}
 
 interface GameOverModalProps {
   score: number;
   onClose: () => void;
-  onScoreSubmitted: () => void;
 }
 
-export function GameOverModal({ score, onClose, onScoreSubmitted }: GameOverModalProps) {
+export function GameOverModal({ score, onClose }: GameOverModalProps) {
   const [nickname, setNickname] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [loadingRanking, setLoadingRanking] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,8 +27,8 @@ export function GameOverModal({ score, onClose, onScoreSubmitted }: GameOverModa
     setSubmitting(true);
     try {
       await submitScore(nickname.trim(), score);
-      setSubmitted(true);
-      onScoreSubmitted();
+      await loadRanking();
+      setShowRanking(true);
     } catch (error) {
       console.error("Failed to submit score:", error);
       alert("Failed to submit score. Please try again.");
@@ -29,15 +37,71 @@ export function GameOverModal({ score, onClose, onScoreSubmitted }: GameOverModa
     }
   }
 
+  async function loadRanking() {
+    setLoadingRanking(true);
+    try {
+      const result = await getRanking();
+      setRanking(result.data);
+    } catch (error) {
+      console.error("Failed to load ranking:", error);
+    } finally {
+      setLoadingRanking(false);
+    }
+  }
+
+  function handleSkip() {
+    loadRanking();
+    setShowRanking(true);
+  }
+
+  useEffect(() => {
+    // Prevent background scroll on mobile
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <h2 style={styles.title}>Game Over!</h2>
         <p style={styles.score}>Your Score: {score}</p>
 
-        {submitted ? (
+        {showRanking ? (
           <div>
-            <p style={styles.success}>Score submitted!</p>
+            <h3 style={styles.rankingTitle}>Top 10 Ranking</h3>
+            {loadingRanking ? (
+              <p>Loading...</p>
+            ) : ranking.length === 0 ? (
+              <p style={styles.empty}>No scores yet!</p>
+            ) : (
+              <div style={styles.rankingContainer}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>#</th>
+                      <th style={styles.th}>Name</th>
+                      <th style={styles.th}>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ranking.map((entry, index) => (
+                      <tr
+                        key={entry.id}
+                        style={index < 3 ? styles.topThree : undefined}
+                      >
+                        <td style={styles.td}>
+                          {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                        </td>
+                        <td style={styles.td}>{entry.nickname}</td>
+                        <td style={styles.td}>{entry.score}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <button style={styles.button} onClick={onClose}>
               Play Again
             </button>
@@ -61,7 +125,7 @@ export function GameOverModal({ score, onClose, onScoreSubmitted }: GameOverModa
               >
                 {submitting ? "Submitting..." : "Submit Score"}
               </button>
-              <button type="button" style={styles.buttonSecondary} onClick={onClose}>
+              <button type="button" style={styles.buttonSecondary} onClick={handleSkip}>
                 Skip
               </button>
             </div>
@@ -84,23 +148,28 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1000,
+    padding: "16px",
   },
   modal: {
     backgroundColor: "#fff",
     borderRadius: "12px",
-    padding: "32px",
+    padding: "24px",
     textAlign: "center",
-    minWidth: "300px",
+    width: "100%",
+    maxWidth: "340px",
+    maxHeight: "90vh",
+    overflow: "auto",
   },
   title: {
-    margin: "0 0 16px 0",
+    margin: "0 0 8px 0",
     color: "#333",
+    fontSize: "24px",
   },
   score: {
-    fontSize: "24px",
+    fontSize: "32px",
     fontWeight: "bold",
     color: "#e91e63",
-    margin: "0 0 24px 0",
+    margin: "0 0 20px 0",
   },
   input: {
     width: "100%",
@@ -124,6 +193,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     borderRadius: "8px",
     cursor: "pointer",
+    flex: 1,
   },
   buttonSecondary: {
     padding: "12px 24px",
@@ -134,8 +204,37 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "8px",
     cursor: "pointer",
   },
-  success: {
-    color: "#4CAF50",
+  rankingTitle: {
+    margin: "0 0 12px 0",
+    color: "#333",
+    fontSize: "18px",
+  },
+  rankingContainer: {
+    maxHeight: "250px",
+    overflow: "auto",
+    marginBottom: "16px",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+  },
+  th: {
+    padding: "8px",
+    textAlign: "left",
+    borderBottom: "2px solid #ddd",
+    color: "#333",
+    fontSize: "14px",
+  },
+  td: {
+    padding: "8px",
+    borderBottom: "1px solid #eee",
+    fontSize: "14px",
+  },
+  topThree: {
+    backgroundColor: "#fff9c4",
+  },
+  empty: {
+    color: "#666",
     marginBottom: "16px",
   },
 };

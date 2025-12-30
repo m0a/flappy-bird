@@ -111,6 +111,7 @@ function drawPipe(
 
 export function Game({ onGameOver }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameOverCalledRef = useRef(false);
   const {
     gameState,
     score,
@@ -127,7 +128,8 @@ export function Game({ onGameOver }: GameProps) {
   } = useGame();
 
   useEffect(() => {
-    if (gameState === "gameover") {
+    if (gameState === "gameover" && !gameOverCalledRef.current) {
+      gameOverCalledRef.current = true;
       onGameOver(score);
     }
   }, [gameState, score, onGameOver]);
