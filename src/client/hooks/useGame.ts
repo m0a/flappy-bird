@@ -4,10 +4,14 @@ const BASE_WIDTH = 400;
 const BASE_HEIGHT = 600;
 const BIRD_SIZE = 34;
 const PIPE_WIDTH = 60;
-const PIPE_GAP = 150;
-const GRAVITY = 0.4;
-const JUMP_FORCE = -8;
-const PIPE_SPEED = 3;
+const GRAVITY = 0.35;
+const JUMP_FORCE = -7;
+
+// Progressive difficulty settings
+const INITIAL_PIPE_GAP = 200;  // Start with wide gap
+const MIN_PIPE_GAP = 130;      // Minimum gap at high scores
+const INITIAL_PIPE_SPEED = 2;  // Start slow
+const MAX_PIPE_SPEED = 4;      // Maximum speed at high scores
 
 interface Bird {
   x: number;
@@ -20,9 +24,24 @@ interface Pipe {
   x: number;
   topHeight: number;
   passed: boolean;
+  gap: number;  // Store gap for each pipe
 }
 
 export type GameState = "ready" | "playing" | "gameover";
+
+// Calculate difficulty based on score
+function getDifficulty(score: number) {
+  // Increase difficulty every 5 points
+  const level = Math.floor(score / 5);
+
+  // Gap decreases from 200 to 130 over 10 levels
+  const gap = Math.max(MIN_PIPE_GAP, INITIAL_PIPE_GAP - level * 7);
+
+  // Speed increases from 2 to 4 over 10 levels
+  const speed = Math.min(MAX_PIPE_SPEED, INITIAL_PIPE_SPEED + level * 0.2);
+
+  return { gap, speed };
+}
 
 export function useGame() {
   const [gameState, setGameState] = useState<GameState>("ready");
@@ -31,6 +50,12 @@ export function useGame() {
   const [pipes, setPipes] = useState<Pipe[]>([]);
   const [canvasSize, setCanvasSize] = useState({ width: BASE_WIDTH, height: BASE_HEIGHT });
   const gameLoopRef = useRef<number | undefined>(undefined);
+  const scoreRef = useRef(0);
+
+  // Keep scoreRef in sync
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
   // Responsive canvas size - fullscreen on mobile
   useEffect(() => {
@@ -38,18 +63,13 @@ export function useGame() {
       const isMobile = window.innerWidth < 768;
 
       if (isMobile) {
-        // Mobile: use full screen
+        // Mobile: fill screen width, calculate height to maintain aspect ratio
         const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-
-        // Calculate scale based on which dimension is the limiting factor
-        const scaleByWidth = screenWidth / BASE_WIDTH;
-        const scaleByHeight = screenHeight / BASE_HEIGHT;
-        const optimalScale = Math.min(scaleByWidth, scaleByHeight);
+        const aspectRatio = BASE_HEIGHT / BASE_WIDTH;
 
         setCanvasSize({
-          width: BASE_WIDTH * optimalScale,
-          height: BASE_HEIGHT * optimalScale,
+          width: screenWidth,
+          height: screenWidth * aspectRatio,
         });
       } else {
         // Desktop: use bounded size
@@ -73,6 +93,7 @@ export function useGame() {
     setBird({ x: 100, y: 300, velocity: 0, rotation: 0 });
     setPipes([]);
     setScore(0);
+    scoreRef.current = 0;
     setGameState("ready");
   }, []);
 
@@ -101,6 +122,8 @@ export function useGame() {
     if (gameState !== "playing") return;
 
     const gameLoop = () => {
+      const { speed, gap } = getDifficulty(scoreRef.current);
+
       setBird((prev) => {
         const newY = prev.y + prev.velocity;
         const newVelocity = prev.velocity + GRAVITY;
@@ -116,12 +139,12 @@ export function useGame() {
 
       setPipes((prev) => {
         let newPipes = prev
-          .map((pipe) => ({ ...pipe, x: pipe.x - PIPE_SPEED }))
+          .map((pipe) => ({ ...pipe, x: pipe.x - speed }))
           .filter((pipe) => pipe.x + PIPE_WIDTH > 0);
 
         if (newPipes.length === 0 || newPipes[newPipes.length - 1].x < BASE_WIDTH - 200) {
-          const topHeight = Math.random() * (BASE_HEIGHT - PIPE_GAP - 100) + 50;
-          newPipes.push({ x: BASE_WIDTH, topHeight, passed: false });
+          const topHeight = Math.random() * (BASE_HEIGHT - gap - 100) + 50;
+          newPipes.push({ x: BASE_WIDTH, topHeight, passed: false, gap });
         }
 
         return newPipes;
@@ -161,7 +184,7 @@ export function useGame() {
       if (
         birdRight > pipe.x &&
         bird.x < pipeRight &&
-        birdBottom > pipe.topHeight + PIPE_GAP
+        birdBottom > pipe.topHeight + pipe.gap
       ) {
         endGame();
       }
@@ -173,6 +196,9 @@ export function useGame() {
       }
     });
   }, [bird, pipes, gameState, endGame]);
+
+  // Get current difficulty for display
+  const currentDifficulty = getDifficulty(score);
 
   return {
     gameState,
@@ -186,7 +212,7 @@ export function useGame() {
     scale,
     birdSize: BIRD_SIZE,
     pipeWidth: PIPE_WIDTH,
-    pipeGap: PIPE_GAP,
+    pipeGap: currentDifficulty.gap,
     baseWidth: BASE_WIDTH,
     baseHeight: BASE_HEIGHT,
   };

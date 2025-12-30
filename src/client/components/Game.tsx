@@ -168,7 +168,7 @@ export function Game({ onGameOver }: GameProps) {
 
     // Draw pipes
     pipes.forEach((pipe) => {
-      drawPipe(ctx, pipe.x, pipe.topHeight, pipeGap, baseHeight, pipeWidth, scale);
+      drawPipe(ctx, pipe.x, pipe.topHeight, pipe.gap, baseHeight, pipeWidth, scale);
     });
 
     // Draw bird
