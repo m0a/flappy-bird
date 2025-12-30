@@ -18,7 +18,37 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
-  const [loadingRanking, setLoadingRanking] = useState(false);
+  const [loadingRanking, setLoadingRanking] = useState(true);
+  const [isTopTen, setIsTopTen] = useState(false);
+
+  // Check if score qualifies for top 10 on mount
+  useEffect(() => {
+    async function checkRanking() {
+      setLoadingRanking(true);
+      try {
+        const result = await getRanking();
+        setRanking(result.data);
+
+        // Check if score qualifies for top 10
+        const qualifies = result.data.length < 10 ||
+          score > (result.data[result.data.length - 1]?.score ?? 0);
+
+        setIsTopTen(qualifies);
+
+        // If not top 10, skip to ranking display
+        if (!qualifies) {
+          setShowRanking(true);
+        }
+      } catch (error) {
+        console.error("Failed to load ranking:", error);
+        setShowRanking(true);
+      } finally {
+        setLoadingRanking(false);
+      }
+    }
+
+    checkRanking();
+  }, [score]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,7 +80,6 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
   }
 
   function handleSkip() {
-    loadRanking();
     setShowRanking(true);
   }
 
@@ -61,6 +90,19 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
       document.body.style.overflow = "";
     };
   }, []);
+
+  // Loading state
+  if (loadingRanking && !showRanking) {
+    return (
+      <div style={styles.overlay}>
+        <div style={styles.modal}>
+          <h2 style={styles.title}>Game Over!</h2>
+          <p style={styles.score}>Your Score: {score}</p>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.overlay}>
@@ -106,31 +148,34 @@ export function GameOverModal({ score, onClose }: GameOverModalProps) {
               Play Again
             </button>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <input
-              type="text"
-              placeholder="Enter your nickname"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={20}
-              style={styles.input}
-              autoFocus
-            />
-            <div style={styles.buttons}>
-              <button
-                type="submit"
-                style={styles.button}
-                disabled={!nickname.trim() || submitting}
-              >
-                {submitting ? "Submitting..." : "Submit Score"}
-              </button>
-              <button type="button" style={styles.buttonSecondary} onClick={handleSkip}>
-                Skip
-              </button>
-            </div>
-          </form>
-        )}
+        ) : isTopTen ? (
+          <div>
+            <p style={styles.congrats}>You made the Top 10!</p>
+            <form onSubmit={handleSubmit}>
+              <input
+                type="text"
+                placeholder="Enter your nickname"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                maxLength={20}
+                style={styles.input}
+                autoFocus
+              />
+              <div style={styles.buttons}>
+                <button
+                  type="submit"
+                  style={styles.button}
+                  disabled={!nickname.trim() || submitting}
+                >
+                  {submitting ? "Submitting..." : "Submit Score"}
+                </button>
+                <button type="button" style={styles.buttonSecondary} onClick={handleSkip}>
+                  Skip
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -169,7 +214,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "32px",
     fontWeight: "bold",
     color: "#e91e63",
-    margin: "0 0 20px 0",
+    margin: "0 0 16px 0",
+  },
+  congrats: {
+    fontSize: "18px",
+    color: "#4CAF50",
+    fontWeight: "bold",
+    margin: "0 0 16px 0",
   },
   input: {
     width: "100%",
