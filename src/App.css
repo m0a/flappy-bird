@@ -39,7 +39,8 @@ body {
     padding: 0;
     justify-content: flex-start;
     min-height: 100dvh;
-    background: #87CEEB;
+    background: #8B4513;
+    overflow: hidden;
   }
 
   .app-title {
@@ -50,7 +51,9 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 0;
-    width: 100%;
-    background: #87CEEB;
+    width: 100vw;
+    height: 100dvh;
+    overflow: hidden;
+    background: #8B4513;
   }
 }

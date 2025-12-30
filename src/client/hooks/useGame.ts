@@ -63,13 +63,18 @@ export function useGame() {
       const isMobile = window.innerWidth < 768;
 
       if (isMobile) {
-        // Mobile: fill screen width, calculate height to maintain aspect ratio
+        // Mobile: fill entire screen
         const screenWidth = window.innerWidth;
-        const aspectRatio = BASE_HEIGHT / BASE_WIDTH;
+        const screenHeight = window.innerHeight;
+
+        // Use the larger scale to ensure we fill the entire screen
+        const scaleByWidth = screenWidth / BASE_WIDTH;
+        const scaleByHeight = screenHeight / BASE_HEIGHT;
+        const fillScale = Math.max(scaleByWidth, scaleByHeight);
 
         setCanvasSize({
-          width: screenWidth,
-          height: screenWidth * aspectRatio,
+          width: BASE_WIDTH * fillScale,
+          height: BASE_HEIGHT * fillScale,
         });
       } else {
         // Desktop: use bounded size
