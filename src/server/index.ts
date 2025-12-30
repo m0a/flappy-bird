@@ -5,9 +5,14 @@ import { z } from "zod";
 import { drizzle } from "drizzle-orm/d1";
 import { desc } from "drizzle-orm";
 import { scores } from "./db/schema";
+import { getAssetFromKV } from "@cloudflare/kv-asset-handler";
+import manifestJSON from "__STATIC_CONTENT_MANIFEST";
+
+const assetManifest = JSON.parse(manifestJSON);
 
 type Bindings = {
   DB: D1Database;
+  __STATIC_CONTENT: KVNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -48,7 +53,36 @@ const api = app
 
 // Serve static files
 app.get("*", async (c) => {
-  return c.notFound();
+  try {
+    return await getAssetFromKV(
+      {
+        request: c.req.raw,
+        waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
+      },
+      {
+        ASSET_NAMESPACE: c.env.__STATIC_CONTENT,
+        ASSET_MANIFEST: assetManifest,
+      }
+    );
+  } catch {
+    // If not found, try to serve index.html for SPA routing
+    try {
+      const url = new URL(c.req.url);
+      url.pathname = "/index.html";
+      return await getAssetFromKV(
+        {
+          request: new Request(url.toString(), c.req.raw),
+          waitUntil: c.executionCtx.waitUntil.bind(c.executionCtx),
+        },
+        {
+          ASSET_NAMESPACE: c.env.__STATIC_CONTENT,
+          ASSET_MANIFEST: assetManifest,
+        }
+      );
+    } catch {
+      return c.notFound();
+    }
+  }
 });
 
 export type AppType = typeof api;
