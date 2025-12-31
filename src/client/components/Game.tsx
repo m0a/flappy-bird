@@ -5,13 +5,68 @@ interface GameProps {
   onGameOver: (score: number) => void;
 }
 
+interface TrailPoint {
+  x: number;
+  y: number;
+  age: number;
+}
+
+function drawTrail(
+  ctx: CanvasRenderingContext2D,
+  trail: TrailPoint[],
+  scale: number
+) {
+  if (trail.length < 2) return;
+
+  const maxAge = 30;
+
+  // Draw air flow lines connecting trail points
+  for (let i = 1; i < trail.length; i++) {
+    const point = trail[i];
+    const prevPoint = trail[i - 1];
+    const alpha = Math.max(0, 1 - point.age / maxAge);
+    const lineWidth = Math.max(0.5, (1 - point.age / maxAge) * 4);
+
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+    ctx.lineWidth = lineWidth * scale;
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(prevPoint.x * scale, prevPoint.y * scale);
+    ctx.lineTo(point.x * scale, point.y * scale);
+    ctx.stroke();
+  }
+
+  // Draw small particles dispersing from trail
+  trail.forEach((point, i) => {
+    if (i % 3 === 0) {
+      const alpha = Math.max(0, 1 - point.age / maxAge);
+      const size = Math.max(1, (1 - point.age / maxAge) * 3);
+      // Particles drift slightly as they age
+      const drift = point.age * 0.3;
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(
+        (point.x + Math.sin(point.age * 0.3 + i) * drift) * scale,
+        (point.y + Math.cos(point.age * 0.3 + i) * drift) * scale,
+        size * scale,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+  });
+}
+
 function drawBird(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   size: number,
   rotation: number,
-  scale: number
+  scale: number,
+  flapFrame: number
 ) {
   const centerX = x + size / 2;
   const centerY = y + size / 2;
@@ -28,10 +83,31 @@ function drawBird(
   ctx.ellipse(0, 0, (size / 2) * s, (size / 2.5) * s, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Wing
+  // Wing - flaps on tap
+  // flapFrame 1-5: wing up, 6-10: wing down, 11-15: return to normal
+  let wingY = 4; // Default position
+  let wingAngle = -0.3;
+
+  if (flapFrame > 0 && flapFrame <= 5) {
+    // Wing up (rapid upstroke)
+    const t = flapFrame / 5;
+    wingY = 4 - 10 * t;
+    wingAngle = -0.3 - 0.6 * t;
+  } else if (flapFrame > 5 && flapFrame <= 10) {
+    // Wing down (downstroke)
+    const t = (flapFrame - 5) / 5;
+    wingY = -6 + 14 * t;
+    wingAngle = -0.9 + 0.8 * t;
+  } else if (flapFrame > 10 && flapFrame <= 15) {
+    // Return to normal
+    const t = (flapFrame - 10) / 5;
+    wingY = 8 - 4 * t;
+    wingAngle = -0.1 - 0.2 * t;
+  }
+
   ctx.fillStyle = "#FF8C00";
   ctx.beginPath();
-  ctx.ellipse(-2 * s, 4 * s, 10 * s, 6 * s, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(-2 * s, wingY * s, 10 * s, 6 * s, wingAngle, 0, Math.PI * 2);
   ctx.fill();
 
   // Eye white
@@ -125,6 +201,8 @@ export function Game({ onGameOver }: GameProps) {
     pipeWidth,
     pipeGap,
     baseHeight,
+    flapFrame,
+    trail,
   } = useGame();
 
   useEffect(() => {
@@ -173,8 +251,13 @@ export function Game({ onGameOver }: GameProps) {
       drawPipe(ctx, pipe.x, pipe.topHeight, pipe.gap, baseHeight, pipeWidth, scale);
     });
 
+    // Draw trail (air flow effect)
+    if (gameState === "playing") {
+      drawTrail(ctx, trail, scale);
+    }
+
     // Draw bird
-    drawBird(ctx, bird.x, bird.y, birdSize, bird.rotation, scale);
+    drawBird(ctx, bird.x, bird.y, birdSize, bird.rotation, scale, flapFrame);
 
     // Draw score
     ctx.fillStyle = "#FFF";
@@ -194,7 +277,7 @@ export function Game({ onGameOver }: GameProps) {
       ctx.fillText("Tap or Press Space", canvasWidth / 2, canvasHeight / 2 - 15 * scale);
       ctx.fillText("to Start", canvasWidth / 2, canvasHeight / 2 + 15 * scale);
     }
-  }, [bird, pipes, score, gameState, canvasWidth, canvasHeight, scale, birdSize, pipeWidth, pipeGap, baseHeight]);
+  }, [bird, pipes, score, gameState, canvasWidth, canvasHeight, scale, birdSize, pipeWidth, pipeGap, baseHeight, flapFrame, trail]);
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 

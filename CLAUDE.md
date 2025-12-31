@@ -1,98 +1,52 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-Flappy Bird clone built with React + TypeScript frontend and Hono backend, deployed on Cloudflare Workers with D1 database.
+Flappy Bird clone with React frontend and Hono backend, deployed on Cloudflare Workers with D1 database.
 
 **Live URL**: https://flappy-bird.abe00makoto.workers.dev
-
-## Tech Stack
-
-- **Frontend**: React 19, TypeScript, Vite, Canvas API, Web Audio API
-- **Backend**: Hono with RPC-style API
-- **Database**: Cloudflare D1 (SQLite) with Drizzle ORM
-- **Deployment**: Cloudflare Workers + Pages
-
-## Project Structure
-
-```
-src/
-├── App.tsx              # Main app component with nickname state
-├── App.css              # Global styles including mobile responsiveness
-├── main.tsx             # React entry point
-├── client/
-│   ├── components/
-│   │   ├── Game.tsx           # Main game component
-│   │   ├── GameOverModal.tsx  # Score submission & ranking display
-│   │   └── Ranking.tsx        # Ranking display component
-│   ├── hooks/
-│   │   └── useGame.ts         # Game logic (physics, collision, difficulty)
-│   └── lib/
-│       ├── api.ts             # Hono RPC client
-│       └── sound.ts           # Web Audio API sounds & BGM
-└── server/
-    ├── index.ts               # Hono server entry point
-    ├── worker-types.d.ts      # Cloudflare Worker types
-    └── db/
-        └── schema.ts          # Drizzle schema (scores table)
-```
 
 ## Commands
 
 ```bash
-# Development
-npm run dev           # Start Vite dev server (frontend only)
-npm run dev:server    # Start Wrangler dev server (full stack)
-
-# Build & Deploy
+npm run dev           # Vite dev server (frontend only, no API)
+npm run dev:server    # Wrangler dev server (full stack with API)
 npm run build         # TypeScript check + Vite build
 npm run deploy        # Build and deploy to Cloudflare Workers
 
-# Database
 npm run db:generate       # Generate Drizzle migrations
 npm run db:migrate        # Apply migrations to production D1
 npm run db:migrate:local  # Apply migrations to local D1
-
-# Other
-npm run lint          # Run ESLint
-npm run preview       # Preview production build
 ```
 
-## API Endpoints
+## Architecture
 
-- `POST /api/scores` - Submit score `{ nickname: string, score: number }`
-- `GET /api/scores/ranking` - Get top 10 scores with timestamps
+**Frontend-Backend Communication**: Uses Hono RPC for type-safe API calls. The server exports `AppType` from `src/server/index.ts`, which the client imports in `src/client/lib/api.ts` to get typed API methods via `hc<AppType>()`.
 
-## Game Features
+**Game Loop**: All game logic is in `src/client/hooks/useGame.ts`. Uses `requestAnimationFrame` for the game loop with physics (gravity, velocity) calculated at a base resolution of 400x600, then scaled for display.
 
-- Canvas-based rendering with mobile fullscreen support
-- Progressive difficulty (gap shrinks, speed increases every 5 points)
-- Original BGM and sound effects (Web Audio API)
-- Top 10 ranking with JST timestamps
-- Nickname persistence within session (not localStorage)
+**Progressive Difficulty**: Every 5 points, gap decreases (200→130px) and speed increases (2→4). Each pipe stores its own gap value at creation time.
 
-## Database Schema
+**Audio**: Procedural sounds generated via Web Audio API oscillators in `src/client/lib/sound.ts`. No external audio files.
 
-```sql
-CREATE TABLE scores (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  nickname TEXT NOT NULL,
-  score INTEGER NOT NULL,
-  created_at TEXT DEFAULT (datetime('now'))
-);
-```
+**Static Assets**: Served from Vite build (`dist/`) via `@cloudflare/kv-asset-handler` with SPA fallback to `index.html`.
 
-## Key Implementation Details
+## Key Files
 
-- **Difficulty System** (`useGame.ts`): Initial gap 200px, min 130px; speed 2-4
-- **Date Display**: UTC stored, converted to JST (UTC+9) in `formatDate()`
-- **Mobile**: Uses `100dvh` for full viewport, hides overflow
-- **Sound**: Procedural audio with oscillators, no external files
+- `src/server/index.ts` - Hono API routes and static file serving
+- `src/client/hooks/useGame.ts` - Game physics, collision, difficulty
+- `src/client/lib/sound.ts` - Procedural audio (BGM, effects)
+- `src/server/db/schema.ts` - Drizzle schema for scores table
 
-## Environment
+## API
 
-- D1 database binding: `DB`
-- Database name: `flappy-bird-db`
-- No environment variables required (secrets in Cloudflare dashboard if needed)
+- `POST /api/scores` - Submit `{ nickname: string, score: number }`
+- `GET /api/scores/ranking` - Top 10 scores
+
+## Notes
+
+- Dates stored as UTC, displayed in JST (UTC+9)
+- Mobile uses `100dvh` for fullscreen canvas
+- D1 binding: `DB`, database: `flappy-bird-db`

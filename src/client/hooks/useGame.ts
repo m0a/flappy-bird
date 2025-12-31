@@ -21,6 +21,12 @@ interface Bird {
   rotation: number;
 }
 
+interface TrailPoint {
+  x: number;
+  y: number;
+  age: number; // 0 = newest, increases over time
+}
+
 interface Pipe {
   x: number;
   topHeight: number;
@@ -50,8 +56,13 @@ export function useGame() {
   const [bird, setBird] = useState<Bird>({ x: 100, y: 300, velocity: 0, rotation: 0 });
   const [pipes, setPipes] = useState<Pipe[]>([]);
   const [canvasSize, setCanvasSize] = useState({ width: BASE_WIDTH, height: BASE_HEIGHT });
+  const [flapFrame, setFlapFrame] = useState(0); // Flap animation frame
+  const [trail, setTrail] = useState<TrailPoint[]>([]); // Trail points for air flow effect
   const gameLoopRef = useRef<number | undefined>(undefined);
   const scoreRef = useRef(0);
+  const flapFrameRef = useRef(0);
+  const trailRef = useRef<TrailPoint[]>([]);
+  const frameCountRef = useRef(0);
 
   // Keep scoreRef in sync
   useEffect(() => {
@@ -100,6 +111,9 @@ export function useGame() {
     setPipes([]);
     setScore(0);
     scoreRef.current = 0;
+    setTrail([]);
+    trailRef.current = [];
+    frameCountRef.current = 0;
     setGameState("ready");
   }, []);
 
@@ -117,6 +131,8 @@ export function useGame() {
     if (gameState === "playing" || gameState === "ready") {
       playJumpSound();
       setBird((prev) => ({ ...prev, velocity: JUMP_FORCE, rotation: -30 }));
+      setFlapFrame(1); // Start flap animation
+      flapFrameRef.current = 1;
     }
   }, [gameState, startGame]);
 
@@ -159,6 +175,37 @@ export function useGame() {
         }
 
         return newPipes;
+      });
+
+      // Update flap animation frame
+      if (flapFrameRef.current > 0 && flapFrameRef.current < 15) {
+        flapFrameRef.current += 1;
+        setFlapFrame(flapFrameRef.current);
+      } else if (flapFrameRef.current >= 15) {
+        flapFrameRef.current = 0;
+        setFlapFrame(0);
+      }
+
+      // Update trail - move existing points left (like pipes) and add new point
+      frameCountRef.current += 1;
+      setBird((currentBird) => {
+        // Move existing points left with pipe speed, age them
+        const newTrail = trailRef.current
+          .map(p => ({ ...p, x: p.x - speed, age: p.age + 1 }))
+          .filter(p => p.x > 0 && p.age < 30); // Remove off-screen or old points
+
+        // Add new point every 3 frames
+        if (frameCountRef.current % 3 === 0) {
+          newTrail.unshift({
+            x: currentBird.x + BIRD_SIZE / 2,
+            y: currentBird.y + BIRD_SIZE / 2,
+            age: 0
+          });
+        }
+
+        trailRef.current = newTrail;
+        setTrail(newTrail);
+        return currentBird;
       });
 
       gameLoopRef.current = requestAnimationFrame(gameLoop);
@@ -227,5 +274,7 @@ export function useGame() {
     pipeGap: currentDifficulty.gap,
     baseWidth: BASE_WIDTH,
     baseHeight: BASE_HEIGHT,
+    flapFrame,
+    trail,
   };
 }
